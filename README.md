@@ -22,3 +22,11 @@
    ```sh
    http://localhost:3000
    ```
+
+### Test Users
+
+| Username     | Password |
+| ------------ | -------- |
+| switzerchees | 123456   |
+| john         | 123456   |
+| jane         | 123456   |
