@@ -8,15 +8,11 @@
    ```
 2. Install NPM packages
    ```sh
-   yarn install
-   # or
    npm install
    ```
 3. Run the app
    ```sh
-   yarn start
-   # or
-   npm start
+   npm run start
    ```
 4. Open the app in your browser
    ```sh
