@@ -1,4 +1,5 @@
 const { initializeDatabase, queryDB, insertDB } = require("./database");
+const bcrypt = require("bcrypt");
 
 let db;
 
@@ -22,12 +23,27 @@ const postTweet = (req, res) => {
 
 const login = async (req, res) => {
   const { username, password } = req.body;
-  const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
-  const user = await queryDB(db, query);
-  if (user.length === 1) {
-    res.json(user[0]);
-  } else {
-    res.json(null);
+
+  // sichere sql anfrage verhindert sql injection
+  const query = "SELECT * FROM users WHERE username = ?";
+  try {
+    const user = await queryDB(db, query, [username]);
+
+    if (user.length === 0) {
+      return res.status(401).json({error: "Benutzer nicht gefunden!"});
+    }
+
+    // passwortüberprüfung via bcrypt.compare()
+    const isValid = await bcrypt.compare(password, user[0].password);
+
+    if (!isValid) {
+      return res.status(401).json({error: "Falsches Passwort!"});
+    }
+
+    res.json({username: user[0].username});
+  } catch (error) {
+    console.error("Fehler beim Login:", error);
+    res.status(500).json({error: "Interner Serverfehler!"});
   }
 };
 
