@@ -15,11 +15,14 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({ username, password }),
     });
     const data = await response.json();
-    if (data?.username) {
-      localStorage.setItem("user", JSON.stringify(data));
+
+    // token
+    if (data?.token) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify({username: data.username}));
       window.location.href = "/";
     } else {
-      errorText.innerText = data;
+      errorText.innerText = data.error;
     }
   });
 });

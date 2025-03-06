@@ -34,28 +34,61 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const getFeed = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      window.location.href = "/login.html";
+      return;
+    }
+
     const query = "SELECT * FROM tweets ORDER BY id DESC";
-    const response = await fetch(`/api/feed?q=${query}`);
-    const tweets = await response.json();
-    const tweetsHTML = tweets.map(generateTweet).join("");
-    document.getElementById("feed").innerHTML = tweetsHTML;
+    const response = await fetch(`/api/feed?q=${query}`, {
+      method: "GET",
+      headers: {
+        "Authorization": token, // token für header
+      },
+    });
+
+    if (response.ok) {
+      const tweets = await response.json();
+      const tweetsHTML = tweets.map(generateTweet).join("");
+      document.getElementById("feed").innerHTML = tweetsHTML;
+    } else {
+      console.error("Fehler beim Laden des Feeds!");
+    }
   };
 
   const postTweet = async () => {
-    const username = user.username;
-    const timestamp = new Date().toISOString();
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      window.location.href = "/login.html";
+      return;
+    }
+
     const text = newTweetInput.value;
-    const query = `INSERT INTO tweets (username, timestamp, text) VALUES ('${username}', '${timestamp}', '${text}')`;
-    await fetch("/api/feed", {
+    if (!text.trim()) {
+      alert("Tweet darf nicht leer sein!");
+      return;
+    }
+
+    const response = await fetch("/api/feed", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": token,
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({text}), // nur text senden nicht sql querry
     });
-    await getFeed();
-    newTweetInput.value = "";
+
+    if (response.ok) {
+      await getFeed();
+      newTweetInput.value = "";
+    } else {
+      console.error("Fehler beim Posten des Tweets!");
+    }
   };
+
 
   postTweetButton.addEventListener("click", postTweet);
   newTweetInput.addEventListener("keyup", (event) => {
