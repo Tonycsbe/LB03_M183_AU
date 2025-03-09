@@ -10,7 +10,17 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@vrbo/pino-rotating-file": "^4.4.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "mkdirp": "^3.0.1",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "pino-pretty": "^13.0.0",
+    "sanitize-html": "^2.14.0",
     "sqlite3": "^5.1.7"
   }
 }
