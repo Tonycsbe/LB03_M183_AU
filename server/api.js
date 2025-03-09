@@ -79,6 +79,7 @@ const postTweet = async (req, res) => {
   }
 
   let {text} = req.body;
+  const username = req.user.username;
   if (!text || text.trim() === "") {
     fileLogger.warn({userId: req.user.id}, "Versuch, einen leeren Post zu erstellen");
     return res.status(400).json({error: "Text darf nicht leer sein!"});
@@ -86,13 +87,12 @@ const postTweet = async (req, res) => {
 
   // xxs-schutz
   text = sanitizeHtml(text, {
-    allowedTags: ["b", "i", "em", "strong", "a"],
-    allowedAttributes: {"a": ["href", "title"]},
+    allowedTags: ["b", "i", "em", "strong"],
+    allowedAttributes: {},
     disallowedTagsMode: "discard",
   });
 
   const timestamp = new Date().toISOString();
-  const username = req.user.username;
   const encryptedText = encrypt(text);
 
   const query = `INSERT INTO tweets (username, timestamp, text)
