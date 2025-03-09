@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const SECRET_KEY = process.env.JWT_SECRET || "meinFallbackSchlüssel";
 const {fileLogger} = require("../.rotate.js");
+const {encrypt, decrypt} = require("../crypto.js");
 
 let db;
 
@@ -29,8 +30,15 @@ const getFeed = async (req, res) => {
       return res.json([]);
     }
 
-    fileLogger.info({resultCount: tweets.length}, "Feed erfolgreich geladen");
-    res.json(tweets);
+    const decryptedTweets = tweets.map((tweet) => ({
+      id: tweet.id,
+      username: tweet.username,
+      timestamp: tweet.timestamp,
+      text: decrypt(tweet.text) || "Fehler beim Entschlüsseln",
+    }));
+
+    fileLogger.info({resultCount: decryptedTweets.length}, "Feed erfolgreich geladen");
+    res.json(decryptedTweets);
   } catch (error) {
     fileLogger.error({error}, "Fehler beim Abrufen des Feeds");
     res.status(500).json({error: "Interner Serverfehler!"});
@@ -52,16 +60,16 @@ const postTweet = async (req, res) => {
 
   const timestamp = new Date().toISOString();
   const username = req.user.username;
-
-  console.log("Tweet-Daten zum Speichern:", {username, timestamp, text});
+  const encryptedText = encrypt(text);
 
   const query = `INSERT INTO tweets (username, timestamp, text)
                  VALUES (?, ?, ?)`;
-  const params = [username, timestamp, text];
+  const params = [username, timestamp, encryptedText];
 
   try {
     await insertDB(db, query, params);
     console.log("Erfolgreich in DB gespeichert!");
+    fileLogger.info({username, text: "[VERSCHLÜSSELT]"}, "Tweet gespeichert");
     res.json({status: "ok"});
   } catch (error) {
     console.error("Fehler beim Speichern in die DB:", error);
