@@ -7,8 +7,24 @@ const SECRET_KEY = process.env.JWT_SECRET || "meinFallbackSchlüssel";
 const {fileLogger} = require("../.rotate.js");
 const {encrypt, decrypt} = require("../crypto.js");
 const sanitizeHtml = require("sanitize-html");
+const rateLimit = require("express-rate-limit");
 
 let db;
+
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    fileLogger.warn({ip: clientIp}, "Brute-Force-Schutz: Zu viele fehlgeschlagene Login-Versuche");
+
+    res.status(429).json({
+      error: "Zu viele fehlgeschlagene Login-Versuche. Bitte später erneut versuchen."
+    });
+  }
+});
 
 const initializeAPI = async (app) => {
   db = await initializeDatabase();
@@ -16,7 +32,7 @@ const initializeAPI = async (app) => {
 
   app.get("/api/feed", authenticateToken, getFeed);
   app.post("/api/feed", authenticateToken, postTweet);
-  app.post("/api/login", login);
+  app.post("/api/login", loginLimiter, login);
 };
 
 const getFeed = async (req, res) => {
@@ -107,13 +123,13 @@ const login = async (req, res) => {
     const user = await queryDB(db, query, [username]);
 
     if (user.length === 0) {
-      fileLogger.warn({username}, "Fehlgeschlagener Login: Benutzer nicht gefunden");
+      fileLogger.warn({username}, "Fehlgeschlagener Login");
       return res.status(401).json({error: "Ungültige Anmeldedaten"});
     }
 
     const isValid = await bcrypt.compare(password, user[0].password);
     if (!isValid) {
-      fileLogger.warn({username}, "Fehlgeschlagener Login: Falsches Passwort");
+      fileLogger.warn({username}, "Fehlgeschlagener Login");
       return res.status(401).json({error: "Ungültige Anmeldedaten"});
     }
 
