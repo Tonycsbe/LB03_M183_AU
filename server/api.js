@@ -6,6 +6,7 @@ dotenv.config();
 const SECRET_KEY = process.env.JWT_SECRET || "meinFallbackSchlüssel";
 const {fileLogger} = require("../.rotate.js");
 const {encrypt, decrypt} = require("../crypto.js");
+const sanitizeHtml = require("sanitize-html");
 
 let db;
 
@@ -30,15 +31,24 @@ const getFeed = async (req, res) => {
       return res.json([]);
     }
 
-    const decryptedTweets = tweets.map((tweet) => ({
-      id: tweet.id,
-      username: tweet.username,
-      timestamp: tweet.timestamp,
-      text: decrypt(tweet.text) || "Fehler beim Entschlüsseln",
-    }));
+    // entschlüsseln und nochmals xss-schutz anwenden
+    const sanitizedTweets = tweets.map((tweet) => {
+      const decryptedText = decrypt(tweet.text) || "Fehler beim Entschlüsseln";
+      return {
+        id: tweet.id,
+        username: tweet.username,
+        timestamp: tweet.timestamp,
+        text: sanitizeHtml(decryptedText, {
+          allowedTags: ["b", "i", "em", "strong", "a"],
+          allowedAttributes: {"a": ["href", "title"]},
+          disallowedTagsMode: "discard",
+        }),
+      };
+    });
 
-    fileLogger.info({resultCount: decryptedTweets.length}, "Feed erfolgreich geladen");
-    res.json(decryptedTweets);
+    fileLogger.info({resultCount: sanitizedTweets.length}, "Feed erfolgreich geladen");
+    console.log("Entschlüsselte und bereinigte Tweets:", sanitizedTweets);
+    res.json(sanitizedTweets);
   } catch (error) {
     fileLogger.error({error}, "Fehler beim Abrufen des Feeds");
     res.status(500).json({error: "Interner Serverfehler!"});
@@ -52,11 +62,18 @@ const postTweet = async (req, res) => {
     return res.status(401).json({error: "Nicht autorisiert"});
   }
 
-  const {text} = req.body;
+  let {text} = req.body;
   if (!text || text.trim() === "") {
     fileLogger.warn({userId: req.user.id}, "Versuch, einen leeren Post zu erstellen");
     return res.status(400).json({error: "Text darf nicht leer sein!"});
   }
+
+  // xxs-schutz
+  text = sanitizeHtml(text, {
+    allowedTags: ["b", "i", "em", "strong", "a"],
+    allowedAttributes: {"a": ["href", "title"]},
+    disallowedTagsMode: "discard",
+  });
 
   const timestamp = new Date().toISOString();
   const username = req.user.username;
