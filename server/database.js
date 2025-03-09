@@ -6,9 +6,9 @@ const tweetsTableExists =
 
 const createTweetsTable = `CREATE TABLE tweets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT,
-  timestamp TEXT,
-  text TEXT
+  username TEXT NOT NULL ,
+  timestamp TEXT NOT NULL ,
+  text TEXT NOT NULL 
 )`;
 
 const usersTableExists =
@@ -91,10 +91,14 @@ const initializeDatabase = () => {
 };
 
 // promises
-const insertDB = (db, query) => {
+const insertDB = (db, query, params) => {
   return new Promise((resolve, reject) => {
-    db.run(query, [], (err) => {
-      if (err) return reject(err);
+    db.run(query, params, function (err) {
+      if (err) {
+        console.error("Fehler beim Einfügen in die DB:", err);
+        return reject(err);
+      }
+      console.log("Daten erfolgreich eingefügt:", params);
       resolve();
     });
   });
