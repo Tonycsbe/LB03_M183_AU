@@ -3,8 +3,13 @@ const mkdirp = require("mkdirp");
 const path = require("path");
 const fs = require("fs");
 
-// sicherstellung das der logs ordner vorhanden ist
 mkdirp.sync("./logs");
+
+const logFilePath = path.join(__dirname, "logs", "app.log");
+
+if (!fs.existsSync(logFilePath)) {
+    fs.writeFileSync(logFilePath, "", {flag: "w"});
+}
 
 // die funktion wird benötigt
 function rotateLogs() {
